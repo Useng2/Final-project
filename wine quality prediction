@@ -1,0 +1,441 @@
+# import the Basic libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+from termcolor import colored
+
+from sklearn.preprocessing import MinMaxScaler , StandardScaler
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, KFold
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import metrics
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+
+df = pd.read_csv(r'C:\Users\Upasana Sengupta\Desktop\wine-quality-white.csv')
+df.head()
+df.tail()
+df.sample(5)
+df.shape
+df.info()
+import seaborn as sns
+# Transpose the DataFrame for better visualization
+df_transposed = df.describe().T
+
+# Create a heatmap with seaborn
+plt.figure(figsize=(10, 6))
+sns.heatmap(df_transposed, cmap='coolwarm', annot=True, fmt=".2f", linewidths=.5)
+plt.title('Descriptive Statistics')
+plt.show()
+
+df.isnull().sum()
+
+#Renaming columns to better recognize them
+new_column_names = {
+    "fixed acidity": "fixed_acidity",
+    "volatile acidity": "volatile_acidity",
+    "citric acid": "citric_acid",
+    "residual sugar": "residual_sugar",
+    "chlorides": "chlorides",
+    "free sulfur dioxide": "free_sulfur_dioxide",
+    "total sulfur dioxide": "total_sulfur_dioxide"
+}
+
+df.columns = [new_column_names.get(col, col) for col in df.columns]
+
+columns = list(df.columns)
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# List of columns for which boxplots are to be created
+columns_to_plot = ['fixed_acidity', 'volatile_acidity', 'citric_acid', 
+                   'residual_sugar', 'chlorides', 'free_sulfur_dioxide', 
+                   'total_sulfur_dioxide', 'density', 'pH', 'sulphates', 'alcohol']
+
+# Create subplots for each boxplot
+plt.figure(figsize=(15, 10))
+for i, column in enumerate(columns_to_plot, start=1):
+    plt.subplot(4, 3, i)
+    sns.boxplot(x='quality', y=column, data=df)
+    plt.title(f'Boxplot of {column.replace("_", " ").title()} by Wine Quality')
+    plt.xlabel('Quality')
+    plt.ylabel(column.replace("_", " ").title())
+
+plt.tight_layout()
+plt.show()
+
+import seaborn as sns
+
+# List of columns to include in the pair plot
+columns_to_include = ['fixed_acidity', 'volatile_acidity', 'citric_acid', 
+                      'residual_sugar', 'chlorides', 'free_sulfur_dioxide', 
+                      'total_sulfur_dioxide', 'density', 'pH', 'sulphates', 'alcohol', 
+                      'quality']  # 'quality' is included to visualize its relationship with other variables
+
+# Create a pair plot with pink color palette
+sns.pairplot(df[columns_to_include],hue='quality', corner = True, palette='pink')
+plt.show()
+
+#Replace values in quality column to good and middle and bad
+# Replace values in 'quality' column with categorical labels
+df['quality'] = df['quality'].replace({
+    8: 'Good',
+    7: 'Good',
+    6: 'Middle',
+    5: 'Middle',
+    4: 'Bad',
+    3: 'Bad'
+})
+
+X_temp = df.drop(columns='quality')
+y = df.quality
+from sklearn.preprocessing import MinMaxScaler
+import pandas as pd
+
+# Assuming X_temp is your original DataFrame
+# Handle non-numeric data (e.g., categorical data) using one-hot encoding
+X_temp_encoded = pd.get_dummies(X_temp)
+
+# Scale the data using MinMaxScaler
+scaler = MinMaxScaler(feature_range=(0, 1)).fit_transform(X_temp_encoded)
+
+# Create a DataFrame from the scaled data
+X = pd.DataFrame(scaler, columns=X_temp_encoded.columns)
+
+# Calculate descriptive statistics and apply background gradient to styled DataFrame
+styled_description = X.describe().T.style.background_gradient(axis=0, cmap='Purples')
+
+# Display the styled DataFrame
+styled_description
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_confusion_matrix(y_test, y_prediction, labels):
+    '''Plotting Confusion Matrix'''
+    # Calculate confusion matrix
+    confusion_matrix = np.zeros((len(labels), len(labels)), dtype=int)
+    for true_label, pred_label in zip(y_test, y_prediction):
+        confusion_matrix[true_label, pred_label] += 1
+    
+    # Plot confusion matrix
+    plt.figure(figsize=(8, 6))
+    plt.imshow(confusion_matrix, interpolation='nearest', cmap=plt.cm.Purples)
+    plt.title('Confusion Matrix', fontsize=25)
+    plt.colorbar()
+    tick_marks = np.arange(len(labels))
+    plt.xticks(tick_marks, labels)
+    plt.yticks(tick_marks, labels)
+
+    thresh = confusion_matrix.max() / 2.
+    for i, j in [(i, j) for i in range(len(labels)) for j in range(len(labels))]:
+        plt.text(j, i, format(confusion_matrix[i, j], 'd'), horizontalalignment="center",
+                 color="white" if confusion_matrix[i, j] > thresh else "black")
+
+    plt.ylabel('True labels', fontsize=18)
+    plt.xlabel('Predicted labels', fontsize=18)
+    plt.tight_layout()
+    plt.show()
+
+# Example usage:
+# plot_confusion_matrix(y_test, y_prediction, ['Bad', 'Good', 'Middle'])
+
+
+def clf_plot(y_pred) :
+    '''
+    1) Ploting Confusion Matrix
+    2) Plotting Classification Report'''
+    cm = metrics.confusion_matrix(y_test, y_pred)
+    cr = pd.DataFrame(metrics.classification_report(y_test, y_pred, digits=3, output_dict=True)).T
+    cr.drop(columns='support', inplace=True)
+    
+    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
+    
+    # Left AX : Confusion Matrix
+    ax[0] = sns.heatmap(cm, annot=True, fmt='', cmap="Purples", ax=ax[0])
+    ax[0].set_xlabel('Prediced labels', fontsize=18)
+    ax[0].set_ylabel('True labels', fontsize=18)
+    ax[0].set_title('Confusion Matrix', fontsize=25)
+    ax[0].xaxis.set_ticklabels(['Bad', 'Good', 'Middle'])
+    ax[0].yaxis.set_ticklabels(['Bad', 'Good', 'Middle'])
+    
+    # Right AX : Classification Report
+    ax[1] = sns.heatmap(cr, cmap='Purples', annot=True, linecolor='white', linewidths=0.5, ax=ax[1])
+    ax[1].xaxis.tick_top()
+    ax[1].set_title('Classification Report', fontsize=25)
+    plt.show()
+
+def clf_plot(y_pred) :
+    '''
+    1) Ploting Confusion Matrix
+    2) Plotting Classification Report'''
+    cm = metrics.confusion_matrix(y_test, y_pred)
+    cr = pd.DataFrame(metrics.classification_report(y_test, y_pred, digits=3, output_dict=True)).T
+    cr.drop(columns='support', inplace=True)
+    
+    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
+    
+    # Left AX : Confusion Matrix
+    ax[0] = sns.heatmap(cm, annot=True, fmt='', cmap="Purples", ax=ax[0])
+    ax[0].set_xlabel('Prediced labels', fontsize=18)
+    ax[0].set_ylabel('True labels', fontsize=18)
+    ax[0].set_title('Confusion Matrix', fontsize=25)
+    ax[0].xaxis.set_ticklabels(['Bad', 'Good', 'Middle'])
+    ax[0].yaxis.set_ticklabels(['Bad', 'Good', 'Middle'])
+    
+    # Right AX : Classification Report
+    ax[1] = sns.heatmap(cr, cmap='Purples', annot=True, linecolor='white', linewidths=0.5, ax=ax[1])
+    ax[1].xaxis.tick_top()
+    ax[1].set_title('Classification Report', fontsize=25)
+    plt.show()
+
+def clf_plot(y_pred) :
+    '''
+    1) Ploting Confusion Matrix
+    2) Plotting Classification Report'''
+    cm = metrics.confusion_matrix(y_test, y_pred)
+    cr = pd.DataFrame(metrics.classification_report(y_test, y_pred, digits=3, output_dict=True)).T
+    cr.drop(columns='support', inplace=True)
+    
+    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
+    
+    # Left AX : Confusion Matrix
+    ax[0] = sns.heatmap(cm, annot=True, fmt='', cmap="Purples", ax=ax[0])
+    ax[0].set_xlabel('Prediced labels', fontsize=18)
+    ax[0].set_ylabel('True labels', fontsize=18)
+    ax[0].set_title('Confusion Matrix', fontsize=25)
+    ax[0].xaxis.set_ticklabels(['Bad', 'Good', 'Middle'])
+    ax[0].yaxis.set_ticklabels(['Bad', 'Good', 'Middle'])
+    
+    # Right AX : Classification Report
+    ax[1] = sns.heatmap(cr, cmap='Purples', annot=True, linecolor='white', linewidths=0.5, ax=ax[1])
+    ax[1].xaxis.tick_top()
+    ax[1].set_title('Classification Report', fontsize=25)
+    plt.show()
+
+random forest classifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+
+# Initialize LabelEncoder
+label_encoder = LabelEncoder()
+
+# Encode the target variable y_train
+y_train_encoded = label_encoder.fit_transform(y_train.astype(str))
+
+# Define the parameter grid
+parameters = {
+    'n_estimators': [50, 150, 500],
+    'criterion': ['gini', 'entropy'],
+    'max_features': ['sqrt', 'log2']
+}
+
+# Initialize RandomForestClassifier
+rf = RandomForestClassifier()
+
+# Perform GridSearchCV
+rf_cv = GridSearchCV(estimator=rf, param_grid=parameters, cv=5, n_jobs=-1)
+rf_cv.fit(X_train, y_train_encoded)
+
+# Get the best hyperparameters
+best_params = rf_cv.best_params_
+
+# Define the RandomForestClassifier with the best hyperparameters
+best_rf = RandomForestClassifier(**best_params, n_jobs=-1)
+
+# Train the RandomForestClassifier on the training data
+best_rf.fit(X_train, y_train_encoded)
+
+# Encode the target variable y_test
+y_test_encoded = label_encoder.transform(y_test.astype(str))
+
+# Evaluate the model on the test data
+accuracy = best_rf.score(X_test, y_test_encoded)
+print("Accuracy:", accuracy)
+
+logistic regression
+from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import LogisticRegression
+
+parameters = {
+    'C' : [0.001, 0.01, 0.1, 1.0, 10, 100, 1000],
+    'class_weight' : ['balanced'],
+    'solver' : ['lbfgs', 'liblinear', 'newton-cg', 'newton-cholesky', 'sag', 'saga']
+}
+
+lr = LogisticRegression()
+lr_cv = GridSearchCV(estimator=lr, param_grid=parameters, cv=10).fit(X_train, y_train)
+
+print('Tuned hyper parameters : ', lr_cv.best_params_)
+print('accuracy : ', lr_cv.best_score_)
+
+svc
+from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
+from sklearn.preprocessing import LabelEncoder
+
+# Initialize LabelEncoder
+label_encoder = LabelEncoder()
+
+# Encode the target variable y_train
+y_train_encoded = label_encoder.fit_transform(y_train.astype(str))
+
+# Define the parameter grid
+parameters = {
+    'C': [0.001, 0.01, 0.1, 1.0, 10, 100, 1000],
+    'gamma': [0.001, 0.01, 0.1, 1.0, 10, 100, 1000],
+}
+
+# Initialize SVC
+svc = SVC()
+
+# Perform GridSearchCV
+svc_cv = GridSearchCV(estimator=svc, param_grid=parameters, cv=5, n_jobs=-1)
+svc_cv.fit(X_train, y_train_encoded)
+
+# Get the best hyperparameters
+best_params = svc_cv.best_params_
+
+# Define the SVC with the best hyperparameters
+best_svc = SVC(**best_params)
+
+# Train the SVC on the training data
+best_svc.fit(X_train, y_train_encoded)
+
+# Encode the target variable y_test
+y_test_encoded = label_encoder.transform(y_test.astype(str))
+
+# Evaluate the model on the test data
+accuracy = best_svc.score(X_test, y_test_encoded)
+print("Accuracy:", accuracy)
+
+Decision tree classifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV
+import numpy as np
+
+# Define the parameter grid
+parameters = {
+    'criterion': ['gini', 'entropy', 'log_loss'],
+    'splitter': ['best', 'random'],
+    'max_depth': list(np.arange(4, 30, 1))
+}
+
+# Initialize the DecisionTreeClassifier
+tree = DecisionTreeClassifier()
+
+# Perform GridSearchCV
+tree_cv = GridSearchCV(estimator=tree, cv=10, param_grid=parameters)
+tree_cv.fit(X_train, y_train)
+
+# Get the best hyperparameters
+best_params = tree_cv.best_params_
+
+# Define the DecisionTreeClassifier with the best hyperparameters
+best_tree = DecisionTreeClassifier(**best_params)
+
+# Train the DecisionTreeClassifier on the training data
+best_tree.fit(X_train, y_train)
+
+# Evaluate the model on the test data
+accuracy = best_tree.score(X_test, y_test)
+print("Accuracy:", accuracy)
+
+KNeighbour classifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
+
+# Define the parameter grid
+parameters = {
+    'n_neighbors': list(range(3, 50, 2)),
+    'weights': ['uniform', 'distance'],
+    'p': [1, 2, 3, 4]
+}
+
+# Initialize KNeighborsClassifier
+knn = KNeighborsClassifier()
+
+# Perform GridSearchCV
+knn_cv = GridSearchCV(estimator=knn, param_grid=parameters, cv=10)
+knn_cv.fit(X_train, y_train)
+
+# Get the best hyperparameters
+best_params = knn_cv.best_params_
+
+print('Tuned hyperparameters:', best_params)
+print('Best accuracy:', knn_cv.best_score_)
+
+Gaussian NB
+from sklearn.naive_bayes import GaussianNB
+
+# Initialize Gaussian Naive Bayes classifier
+gnb = GaussianNB()
+
+# Train the model
+gnb.fit(X_train, y_train)
+
+# Make predictions
+y_pred_gnb = gnb.predict(X_test)
+
+# Calculate accuracy score
+gnb_score = round(gnb.score(X_test, y_test), 3)
+
+# Print the score
+print('GNB Score:', gnb_score)
+
+result
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Define scores
+scores = [rf_score, lr_score, svc_score, tree_score, knn_score, gnb_score]
+
+# Create DataFrame
+result = pd.DataFrame({
+    'Algorithm': ['RandomForestClassifier', 'LogisticRegression', 'SVC', 'DecisionTreeClassifier', 'KNeighborsClassifier', 'GaussianNB'],
+    'Score': scores
+})
+
+# Sort DataFrame by Score
+result.sort_values(by='Score', inplace=True)
+
+# Plot
+sns.set_palette("Greens")
+fig, ax = plt.subplots(1, 1, figsize=(16, 4))
+sns.barplot(x='Algorithm', y='Score', data=result, ax=ax)
+for p in ax.patches:
+    ax.annotate(format(p.get_height(), '.3f'), 
+                (p.get_x() + p.get_width() / 2., p.get_height()), 
+                ha = 'center', va = 'center', 
+                xytext = (0, 9), 
+                textcoords = 'offset points')
+
+ax.set_xticklabels(labels=result.Algorithm, rotation=45, ha='right')
+plt.show()
+
+testing with other dataset
+from sklearn.preprocessing import MinMaxScaler
+import pandas as pd
+
+# Assuming X_temp is your original DataFrame
+# Handle non-numeric data (e.g., categorical data) using one-hot encoding
+X_temp_encoded = pd.get_dummies(X_temp)
+
+# Scale the data using MinMaxScaler
+scaler = MinMaxScaler(feature_range=(0, 1)).fit_transform(X_temp_encoded)
+
+# Create a DataFrame from the scaled data
+X = pd.DataFrame(scaler, columns=X_temp_encoded.columns)
+
+# Calculate descriptive statistics and apply background gradient to styled DataFrame
+styled_description = X.describe().T.style.background_gradient(axis=0, cmap='Purples')
+
+# Display the styled DataFrame
+styled_description
